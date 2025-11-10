@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
   nomineeName: { type: String, required: true },
   nomineeRelation: { type: String, required: true },
   nomineeAadhar: { type: String, required: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+   totalAmount: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model("User", userSchema);

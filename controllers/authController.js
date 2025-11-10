@@ -59,15 +59,33 @@ exports.loginUser = async (req, res) => {
     res.status(200).json({
       message: "Login successful!",
       token,
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-      },
+        user: {
+    _id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    accountNumber: user.accountNumber,
+    ifscCode: user.ifscCode
+  },
     });
 
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+exports.getMyTotalAmount = async (req, res) => {
+  try {
+    const user = req.user;
+
+    return res.status(200).json({
+      message: "User total amount fetched successfully",
+      userId: user._id,
+      fullName: user.fullName,
+      totalAmount: user.totalAmount,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

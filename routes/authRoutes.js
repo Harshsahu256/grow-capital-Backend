@@ -1,7 +1,7 @@
 // routes/authRoutes.js
 
 const express = require("express");
-const { registerUser, loginUser } = require("../controllers/authController");
+const { registerUser, loginUser, getMyTotalAmount } = require("../controllers/authController");
 const { getAllAccounts } = require("../controllers/bankAccountController");
 
 const router = express.Router();
@@ -21,6 +21,25 @@ router.get("/bankAccounts",  getAllAccounts);
 
 const { verifyUser } = require("../middleware/authMiddleware");
 const Position = require("../models/Position");
+const { uploadSingleFile, getUserDeposits } = require("../controllers/fileController");
+const upload = require("../middleware/multer.middleware");
+const { createWithdrawRequest, getUserTransactionHistory } = require("../controllers/withdrawController");
+const { createMessage } = require("../controllers/contactController");
+
+
+router.post("/single", verifyUser, upload.single("file"), uploadSingleFile);
+router.get("/my-deposits", verifyUser, getUserDeposits);
+
+router.get("/my-total-amount", verifyUser, getMyTotalAmount);
+
+
+router.get("/transactions", verifyUser, getUserTransactionHistory);
+
+
+// ✅ User: create withdraw request
+router.post("/create", verifyUser, createWithdrawRequest);
+
+router.post("/submit", createMessage);
 
 router.get("/positions/user", verifyUser, async (req, res) => {
   try {
