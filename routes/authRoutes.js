@@ -1,7 +1,7 @@
 // routes/authRoutes.js
 
 const express = require("express");
-const { registerUser, loginUser, getMyTotalAmount } = require("../controllers/authController");
+const { registerUser, loginUser, getMyTotalAmount ,getProfile} = require("../controllers/authController");
 const { getAllAccounts } = require("../controllers/bankAccountController");
 
 const router = express.Router();
@@ -43,20 +43,17 @@ router.post("/submit", createMessage);
 
 router.get("/positions/user", verifyUser, async (req, res) => {
   try {
-    const userId = req.user.id; // token se user id mili
+    const userId = req.user.id;
 
     const positions = await Position.find({ user: userId })
       .populate("user", "fullName email")
       .sort({ createdAt: -1 });
 
-    if (!positions || positions.length === 0) {
-      return res.status(404).json({ message: "No positions found for this user." });
-    }
-
+    // ✅ Return empty array if no positions found
     res.json({
       message: "User-specific positions fetched successfully!",
       total: positions.length,
-      positions,
+      positions, // empty array bhi chalega
     });
   } catch (error) {
     console.error("❌ Error fetching user positions:", error);
@@ -65,7 +62,10 @@ router.get("/positions/user", verifyUser, async (req, res) => {
 });
 
 
-/* ==========================================================
-   🔹 Export Router
-   ========================================================== */
+
+router.get("/profile", verifyUser, getProfile);
+
+
+
 module.exports = router;
+

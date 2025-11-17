@@ -48,15 +48,18 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const JWT_SECRET = process.env.JWT_SECRET || "growb_secret_key"; // fallback
 
-// ✅ VERIFY ADMIN
 exports.verifyAdmin = (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-    if (!token) {
+    const auth = req.header("Authorization");
+    if (!auth) {
       return res.status(401).json({ message: "Access Denied! No Token Provided." });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const token = auth.startsWith("Bearer ")
+      ? auth.split(" ")[1]
+      : auth;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (decoded.role !== "admin") {
       return res.status(403).json({ message: "Not Authorized as Admin!" });
@@ -66,9 +69,10 @@ exports.verifyAdmin = (req, res, next) => {
     next();
 
   } catch (error) {
-    return res.status(400).json({ message: "Invalid Token!" });
+    return res.status(400).json({ message: "Invalid Token!", error });
   }
 };
+
 
 
 // // ✅ VERIFY USER

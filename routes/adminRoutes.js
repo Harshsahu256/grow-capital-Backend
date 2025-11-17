@@ -1,165 +1,12 @@
-// const express = require("express");
-// const { registerAdmin, loginAdmin, getAllUsers } = require("../controllers/adminController");
-// const { verifyAdmin } = require("../middleware/authMiddleware");
-// const { createAccount, getAllAccounts, updateAccount, deleteAccount } = require("../controllers/bankAccountController");
-
-// const router = express.Router();
-
-// // ✅ Admin Registration
-// router.post("/register", registerAdmin);
-
-// // ✅ Admin Login (JWT Token)
-// router.post("/login", loginAdmin);
-
-
-// // ✅ Protected Route — Get All Users
-// router.get("/users", verifyAdmin, getAllUsers);
-// router.post("/createAccount", verifyAdmin, createAccount);           // Create
-// router.get("/getAllAccounts", verifyAdmin, getAllAccounts);           // Read All
-      
-// router.put("/getAllAccounts/:id", verifyAdmin, updateAccount);         // Update
-// router.delete("/deleteAccount/:id", verifyAdmin, deleteAccount); 
-
-// // ✅ Example Protected Route (only admin can access)
-// router.get("/dashboard", verifyAdmin, (req, res) => {
-//   res.json({ message: `Welcome Admin ${req.admin.id}!` });
-// });
-
-// module.exports = router;
-
-// const express = require("express");
-// const {
-//   registerAdmin,
-//   loginAdmin,
-//   getAllUsers
-// } = require("../controllers/adminController");
-
-// const {
-//   verifyAdmin
-// } = require("../middleware/authMiddleware");
-
-// const {
-//   createAccount,
-//   getAllAccounts,
-//   updateAccount,
-//   deleteAccount
-// } = require("../controllers/bankAccountController");
-
-// const Position = require("../models/Position"); // 👈 import your model
-
-// const router = express.Router();
-
-// // ✅ Admin Registration
-// router.post("/register", registerAdmin);
-
-// // ✅ Admin Login (JWT Token)
-// router.post("/login", loginAdmin);
-
-// // ✅ Protected Route — Get All Users
-// router.get("/users", verifyAdmin, getAllUsers);
-
-// // ✅ Bank Account Routes
-// router.post("/createAccount", verifyAdmin, createAccount);   // Create
-// router.get("/getAllAccounts", verifyAdmin, getAllAccounts);  // Read All
-// router.put("/getAllAccounts/:id", verifyAdmin, updateAccount); // Update
-// router.delete("/deleteAccount/:id", verifyAdmin, deleteAccount); // Delete
-
-// // ✅ Example Protected Route (only admin can access)
-// router.get("/dashboard", verifyAdmin, (req, res) => {
-//   res.json({ message: `Welcome Admin ${req.admin.id}!` });
-// });
-
-
-// // // 🧾 ✅ Add Position Route (Admin adds portfolio position)
-// // router.post("/addPosition", verifyAdmin, async (req, res) => {
-// //   try {
-// //     const { companyName, buy, sell, totalPrice } = req.body;
-
-// //     if (!companyName || buy == null || sell == null || totalPrice == null) {
-// //       return res.status(400).json({ message: "All fields are required" });
-// //     }
-
-// //     const newPosition = new Position({
-// //       companyName,
-// //       buy,
-// //       sell,
-// //       totalPrice
-// //     });
-
-// //     // profit/loss auto calculate (pre-save hook handles it)
-// //     await newPosition.save();
-
-// //     res.status(201).json({
-// //       message: "Position added successfully!",
-// //       position: newPosition
-// //     });
-// //   } catch (error) {
-// //     console.error("Error creating position:", error);
-// //     res.status(500).json({ message: "Server error" });
-// //   }
-// // });
-// router.post("/addPosition", verifyAdmin, async (req, res) => {
-//   try {
-//     const { userId, companyName, buy, sell, totalPrice } = req.body;
-
-//     if (!userId || !companyName || buy == null || sell == null || totalPrice == null) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     const newPosition = new Position({
-//       user: userId,
-//       companyName,
-//       buy,
-//       sell,
-//       totalPrice
-//     });
-
-//     await newPosition.save();
-//     await newPosition.populate("user", "fullName email");
-
-//     res.status(201).json({
-//       message: "Position added successfully!",
-//       position: newPosition
-//     });
-//   } catch (error) {
-//     console.error("Error creating position:", error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-
-
-// // 📊 ✅ Get All Positions (for Admin Dashboard)
-// // router.get("/positions", verifyAdmin, async (req, res) => {
-// //   try {
-// //     const positions = await Position.find().sort({ createdAt: -1 });
-// //     res.json({ positions });
-// //   } catch (error) {
-// //     console.error("Error fetching positions:", error);
-// //     res.status(500).json({ message: "Server error" });
-// //   }
-// // });
-// router.get("/positions", verifyAdmin, async (req, res) => {
-//   try {
-//     const positions = await Position.find()
-//       .populate("user", "fullName email") // 👈 show user info
-//       .sort({ createdAt: -1 });
-
-//     res.json({ positions });
-//   } catch (error) {
-//     console.error("Error fetching positions:", error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-
-// module.exports = router;
 
 const express = require("express");
 const {
   registerAdmin,
   loginAdmin,
-  getAllUsers
+  getAllUsers,
+  approveUser,
+  rejectUser,
+  getPendingUsers
 } = require("../controllers/adminController");
 
 
@@ -172,6 +19,7 @@ const {
   updateAccount,
   deleteAccount
 } = require("../controllers/bankAccountController");
+const User = require("../models/User");
 
 const Position = require("../models/Position");
 const upload = require("../middleware/multer.middleware"); // multer middleware
@@ -206,47 +54,102 @@ router.get("/dashboard", verifyAdmin, (req, res) => {
 
 
 
-// ✅ Add Position
-router.post("/addPosition", verifyAdmin, async (req, res) => {
-  try {
-    const { userId, companyName, buy, sell, totalPrice } = req.body;
 
-    if (!userId || !companyName || buy == null || sell == null || totalPrice == null) {
-      return res.status(400).json({ message: "All fields are required" });
+//==============================addPosition==============================///
+router.post("/addPosition", async (req, res) => {
+  try {
+    const { userId, companyName, buy, sell, quantity, gain  } = req.body;
+
+    // ✅ Validation
+    if (!userId || !companyName || !quantity) {
+      return res
+        .status(400)
+        .json({ message: "User, company name & quantity are required" });
     }
 
+    // ✅ Check user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Create new position
     const newPosition = new Position({
       user: userId,
       companyName,
       buy,
       sell,
-      totalPrice
+      quantity,
+       gain: gain || 0,
     });
 
     await newPosition.save();
-    await newPosition.populate("user", "fullName email");
 
     res.status(201).json({
-      message: "Position added successfully!",
-      position: newPosition
+      message: "Position added successfully",
+      position: newPosition,
     });
   } catch (error) {
-    console.error("Error creating position:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error adding position:", error);
+    res.status(500).json({ message: "Server error while adding position" });
   }
 });
 
-// ✅ Get All Positions
-router.get("/positions", verifyAdmin, async (req, res) => {
+
+
+
+/* =====================================================
+   📊 Get All Positions (Trades)
+   Endpoint: GET /api/admin/positions
+===================================================== */
+
+router.get("/positions", async (req, res) => {
   try {
     const positions = await Position.find()
-      .populate("user", "fullName email")
+      .populate("user", "fullName email mobileNumber")
       .sort({ createdAt: -1 });
 
-    res.json({ positions });
+    res.status(200).json({ positions });
   } catch (error) {
-    console.error("Error fetching positions:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching positions:", error);
+    res.status(500).json({ message: "Server error while fetching positions" });
+  }
+});
+
+
+
+// ===========================
+// 📝 Update Position API
+// PUT /api/admin/updatePosition/:id
+// ===========================
+router.put("/updatePosition/:id", async (req, res) => {
+  try {
+    const positionId = req.params.id;
+    const { buy, sell, quantity, gain, tradeType, companyName } = req.body;
+
+    // ✅ Find position
+    const position = await Position.findById(positionId);
+    if (!position) {
+      return res.status(404).json({ message: "Position not found" });
+    }
+
+    // ✅ Update fields if provided
+    if (companyName !== undefined) position.companyName = companyName;
+    if (buy !== undefined) position.buy = buy;
+    if (sell !== undefined) position.sell = sell;
+    if (quantity !== undefined) position.quantity = quantity;
+    if (gain !== undefined) position.gain = gain;
+    if (tradeType !== undefined) position.tradeType = tradeType;
+
+    await position.save();
+
+    res.status(200).json({
+      message: "Position updated successfully",
+      position,
+    });
+  } catch (error) {
+    console.error("❌ Error updating position:", error);
+    res.status(500).json({ message: "Server error while updating position" });
   }
 });
 
@@ -264,5 +167,16 @@ router.get("/messages", verifyAdmin, getAllMessages);
 router.get("/files", verifyAdmin, getAllFilesForAdmin);
 
 router.post("/approve", verifyAdmin, approveFile);
+
+
+//=============================//////=======================//
+
+router.put('/admin/approve-user', verifyAdmin, approveUser);
+router.put('/admin/reject-user', verifyAdmin,  rejectUser);
+router.get('/admin/pending-users', verifyAdmin, getPendingUsers);
+
+
+
+
 
 module.exports = router;

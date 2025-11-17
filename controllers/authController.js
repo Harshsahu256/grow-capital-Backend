@@ -3,6 +3,7 @@ const User = require("../models/User");
 
 const jwt = require("jsonwebtoken");
 // ✅ Register User Controller
+
 exports.registerUser = async (req, res) => {
   try {
     const { email, mobileNumber, password } = req.body;
@@ -10,69 +11,130 @@ exports.registerUser = async (req, res) => {
     // Duplicate check
     const existingUser = await User.findOne({ $or: [{ email }, { mobileNumber }] });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists!" });
+      return res.status(400).json({ message: "User already exists with this email or mobile number!" });
     }
 
     // Password hashing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save new user
-    const newUser = new User({ ...req.body, password: hashedPassword });
+    // Create and save new user with 'pending' status
+    const newUser = new User({
+      ...req.body,
+      password: hashedPassword,   // 🔐 hashed password
+      passwordShow: password,     // ⭐ original password (for email)
+      status: "pending",          // 🔴 default pending
+    });
+
     await newUser.save();
 
-    res.status(201).json({ message: "User registered successfully!" });
+    res.status(201).json({ message: "User registered successfully! Awaiting admin approval." });
+
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ message: "Server Error", error });
   }
 };
 
+
+
 exports.loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { code, password } = req.body;
 
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: "Please enter email and password" });
+    // 1️⃣ Validate
+    if (!code || !password) {
+      return res.status(400).json({ message: "Login Code and password are required!" });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    // 2️⃣ Find user
+    const user = await User.findOne({ uniqueLoginCode: code });
+
     if (!user) {
-      return res.status(404).json({ message: "User not found with this email" });
+      return res.status(404).json({ message: "Invalid Login Code!" });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+    // 3️⃣ Check password
+    if (user.passwordShow !== password) {
+      return res.status(401).json({ message: "Incorrect password!" });
     }
 
-    // Generate JWT token with role
- const token = jwt.sign(
-  { id: user._id, role: "user" },
-  process.env.JWT_SECRET || "growb_secret_key",  // 🔄 same secret as verifyUser
-  { expiresIn: "7d" }
-);
+    // 4️⃣ Check approval
+    if (user.status !== "approved") {
+      return res.status(403).json({ message: "Account pending approval." });
+    }
 
+    // 5️⃣ Generate JWT Token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: "user",
+        name: user.name,
+        clientId: user.uniqueLoginCode,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    // Send response
-    res.status(200).json({
+    // 6️⃣ Send Response
+    return res.status(200).json({
       message: "Login successful!",
-      token,
-        user: {
-    _id: user._id,
-    fullName: user.fullName,
-    email: user.email,
-    accountNumber: user.accountNumber,
-    ifscCode: user.ifscCode
-  },
+      token,             // 👈 VERY IMPORTANT
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        clientId: user.uniqueLoginCode,
+        phone: user.phone,
+        status: user.status,
+      }
     });
 
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Server Error", error });
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
+
+// exports.loginUser = async (req, res) => {
+//   try {
+//     const { code, password } = req.body;
+
+//     // 1️⃣ Validate
+//     if (!code || !password) {
+//       return res.status(400).json({ message: "Login Code and password are required!" });
+//     }
+
+//     // 2️⃣ Find user by uniqueLoginCode
+//     const user = await User.findOne({ uniqueLoginCode: code });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "Invalid Login Code!" });
+//     }
+
+//     // 3️⃣ Check password
+//     if (user.passwordShow !== password) {
+//       return res.status(401).json({ message: "Incorrect password!" });
+//     }
+
+//     // 4️⃣ Check approval
+//     if (user.status !== "approved") {
+//       return res.status(403).json({ message: "Account pending approval." });
+//     }
+
+//     // 5️⃣ Successful
+//     res.status(200).json({
+//       message: "Login successful!",
+//       user,
+//     });
+
+//   } catch (error) {
+//     console.error("Login error:", error);
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
+
 
 exports.getMyTotalAmount = async (req, res) => {
   try {
@@ -89,3 +151,18 @@ exports.getMyTotalAmount = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
+exports.getProfile =  async (req, res) => {
+  try {
+    // req.user should have the userId from token
+    const user = await User.findById(req.user.id).select("-password"); // exclude password
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
