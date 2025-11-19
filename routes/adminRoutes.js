@@ -214,5 +214,65 @@ router.get("/contact", getContact);
 // Update contact details
 router.put("/contact", verifyAdmin, updateContact);
 
+//=====================================AMOUNt ==============================//
+
+router.get("/users-amount", async (req, res) => {
+  try {
+    const users = await User.find({}, "fullName email totalAmount"); // Sirf required fields
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
+// router.put("/update-amount/:userId", async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const { newAmount } = req.body;
+
+//     if (typeof newAmount !== "number") {
+//       return res.status(400).json({ success: false, message: "Amount must be a number" });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+//     user.totalAmount = newAmount; // Update amount
+//     await user.save();
+
+//     res.status(200).json({ success: true, message: "Amount updated successfully", totalAmount: user.totalAmount });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// });
+
+router.put("/update-amount/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newAmount } = req.body;
+
+    if (typeof newAmount !== "number") {
+      return res.status(400).json({ success: false, message: "Amount must be a number" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // 🔹 Add newAmount to current totalAmount
+    user.totalAmount += newAmount;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Amount added successfully! New totalAmount: ${user.totalAmount}`,
+      totalAmount: user.totalAmount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 
 module.exports = router;
