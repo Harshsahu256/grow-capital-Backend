@@ -4,6 +4,7 @@ const Admin = require("../models/Admin");
 const User = require("../models/User");
 const sendEmail = require("../models/utils/emailSender");
 const generateUniqueCode = require("../models/utils/generateUniqueCode");
+const Contact = require("../models/Contact");
 
 
 const JWT_SECRET = "growb_secret_key"; // ✅ apne hisab se env me store kar sakte ho
@@ -87,118 +88,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-
-// exports.approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-
-//     // 1️⃣ Find user by ID
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ message: "User not found." });
-
-//     // 2️⃣ Check if already approved
-//     if (user.status === "approved") {
-//       return res.status(400).json({ message: "User is already approved." });
-//     }
-
-//     // 3️⃣ Generate unique login code
-//     const uniqueCode = generateUniqueCode();
-//     user.uniqueLoginCode = uniqueCode;
-
-//     // 4️⃣ Update status
-//     user.status = "approved";
-
-//     // 5️⃣ Save changes
-//     await user.save();
-
-//     // 6️⃣ Prepare email content (unique code + original password)
-//     const emailHtml = `
-//       <h2>Your Account Has Been Approved!</h2>
-//       <p>Dear ${user.fullName},</p>
-//       <p>Your login credentials are below:</p>
-//       <p><b>Login Code:</b> ${uniqueCode}</p>
-//       <p><b>Password:</b> ${user.passwordShow}</p>
-//       <p>Use these credentials on the login page.</p>
-//       <p>Regards,<br/>Grow Capital Team</p>
-//     `;
-
-//     // 7️⃣ Send email
-//     const emailSent = await sendEmail(user.email, "Your Grow Capital Login Details", emailHtml);
-
-//     if (emailSent) {
-//       res.status(200).json({ message: `User ${user.fullName} approved and email sent!` });
-//     } else {
-//       res.status(200).json({ message: `User ${user.fullName} approved, but email failed.` });
-//     }
-
-//   } catch (error) {
-//     console.error("Approve user error:", error);
-//     res.status(500).json({ message: "Server Error", error });
-//   }
-// };
-
-
-
-
-
-// exports.approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-
-//     // Find user
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found." });
-//     }
-
-//     // Already approved?
-//     if (user.status === "approved") {
-//       return res.status(400).json({ message: "User is already approved." });
-//     }
-
-//     // Generate login code (Client ID)
-//     const loginCode = generateUniqueCode();
-//     user.uniqueLoginCode = loginCode;
-
-//     // Approve user
-//     user.status = "approved";
-//     await user.save();
-
-//     // Email content
-//     const emailHtml = `
-//       <h2>Your Grow Capital Account is Approved!</h2>
-//       <p>Hello ${user.fullName},</p>
-//       <p>Your login credentials are:</p>
-//       <p><b>Client ID:</b> ${loginCode}</p>
-//       <p><b>Password:</b> ${user.passwordShow}</p>
-//       <p>Please use these credentials to log in.</p>
-//       <br/>
-//       <p>Regards,<br/>Grow Capital Team</p>
-//     `;
-
-//     // Send Email
-//     const emailSent = await sendEmail(
-//       user.email,
-//       "Grow Capital Login Credentials",
-//       emailHtml
-//     );
-
-//     // Response
-//     return res.status(200).json({
-//       message: emailSent
-//         ? "User approved & email sent!"
-//         : "User approved but email sending failed.",
-//       loginDetails: {
-//         clientId: loginCode,
-//         password: user.passwordShow,
-//       },
-//     });
-
-//   } catch (error) {
-//     console.error("Approve user error:", error);
-//     return res.status(500).json({ message: "Server Error", error });
-//   }
-// };
 
 
 exports.approveUser = async (req, res) => {
@@ -319,5 +208,94 @@ exports.getPendingUsers = async (req, res) => {
   } catch (error) {
     console.error("Get pending users error:", error);
     res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+
+
+//updated user status...==========---------==================//
+
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const { userId, status } = req.body;
+
+    // Validate status
+    const validStatuses = ["pending", "approved", "rejected"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Update status
+    user.status = status;
+
+    // If changing to pending or rejected → remove login code
+    if (status !== "approved") {
+      user.uniqueLoginCode = null;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: `User status updated to '${status}' successfully`,
+      user,
+    });
+
+  } catch (error) {
+    console.error("Update status error:", error);
+    return res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+
+
+///// Contact Details //
+
+
+
+
+// Get contact details
+exports.getContact = async (req, res) => {
+  try {
+    let contact = await Contact.findOne();
+    if (!contact) {
+      // If not exists, create default
+      contact = await Contact.create({
+        address: "Amarnagar faridabad haryana - 121003",
+        phone: "8982261363",
+        email: "Info@smigc.in",
+      });
+    }
+    res.status(200).json(contact);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+// Update contact details
+exports.updateContact = async (req, res) => {
+  try {
+    const { address, phone, email } = req.body;
+
+    let contact = await Contact.findOne();
+    if (!contact) {
+      contact = new Contact({ address, phone, email });
+    } else {
+      contact.address = address;
+      contact.phone = phone;
+      contact.email = email;
+    }
+
+    await contact.save();
+    res.status(200).json({ message: "Contact details updated successfully", contact });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };

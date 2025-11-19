@@ -6,7 +6,10 @@ const {
   getAllUsers,
   approveUser,
   rejectUser,
-  getPendingUsers
+  getPendingUsers,
+  updateUserStatus,
+  getContact,
+  updateContact
 } = require("../controllers/adminController");
 
 
@@ -154,6 +157,33 @@ router.put("/updatePosition/:id", async (req, res) => {
 });
 
 
+// ===========================
+// 📝 Delete Position API
+
+router.delete("/deletePosition/:id", async (req, res) => {
+  try {
+    const positionId = req.params.id;
+
+    // Check if exists
+    const position = await Position.findById(positionId);
+    if (!position) {
+      return res.status(404).json({ message: "Position not found" });
+    }
+
+    // Delete
+    await Position.findByIdAndDelete(positionId);
+
+    res.status(200).json({
+      message: "Position deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error deleting position:", error);
+    res.status(500).json({ message: "Server error while deleting position" });
+  }
+});
+
+
+
 // ✅ Admin: get all requests
 router.get("/getAllWithdrawRequests", verifyAdmin, getAllWithdrawRequests);
 
@@ -174,9 +204,15 @@ router.post("/approve", verifyAdmin, approveFile);
 router.put('/admin/approve-user', verifyAdmin, approveUser);
 router.put('/admin/reject-user', verifyAdmin,  rejectUser);
 router.get('/admin/pending-users', verifyAdmin, getPendingUsers);
+router.put("/update-status", verifyAdmin, updateUserStatus);  
 
 
 
+// Get contact details
+router.get("/contact", getContact);
+
+// Update contact details
+router.put("/contact", verifyAdmin, updateContact);
 
 
 module.exports = router;

@@ -81,12 +81,14 @@ exports.loginUser = async (req, res) => {
       token,             // 👈 VERY IMPORTANT
       user: {
         id: user._id,
-        name: user.name,
+        name: user.fullName,
         email: user.email,
         role: user.role,
         clientId: user.uniqueLoginCode,
         phone: user.phone,
         status: user.status,
+        ifscCode: user.ifscCode,
+        accountNumber: user.accountNumber,
       }
     });
 
@@ -97,43 +99,6 @@ exports.loginUser = async (req, res) => {
 };
 
 
-// exports.loginUser = async (req, res) => {
-//   try {
-//     const { code, password } = req.body;
-
-//     // 1️⃣ Validate
-//     if (!code || !password) {
-//       return res.status(400).json({ message: "Login Code and password are required!" });
-//     }
-
-//     // 2️⃣ Find user by uniqueLoginCode
-//     const user = await User.findOne({ uniqueLoginCode: code });
-
-//     if (!user) {
-//       return res.status(404).json({ message: "Invalid Login Code!" });
-//     }
-
-//     // 3️⃣ Check password
-//     if (user.passwordShow !== password) {
-//       return res.status(401).json({ message: "Incorrect password!" });
-//     }
-
-//     // 4️⃣ Check approval
-//     if (user.status !== "approved") {
-//       return res.status(403).json({ message: "Account pending approval." });
-//     }
-
-//     // 5️⃣ Successful
-//     res.status(200).json({
-//       message: "Login successful!",
-//       user,
-//     });
-
-//   } catch (error) {
-//     console.error("Login error:", error);
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };
 
 
 exports.getMyTotalAmount = async (req, res) => {
