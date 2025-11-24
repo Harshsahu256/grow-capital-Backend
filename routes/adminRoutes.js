@@ -25,10 +25,10 @@ const {
 const User = require("../models/User");
 
 const Position = require("../models/Position");
-const upload = require("../middleware/multer.middleware"); // multer middleware
+// const upload = require("../middleware/multer.middleware"); // multer middleware
 const {
-  uploadSingleFile,
-  uploadMultipleFiles,
+ 
+  
    getAllFilesForAdmin,   // <-- add this
    approveFile
 } = require("../controllers/fileController"); // file upload logic
@@ -273,6 +273,11 @@ router.put("/update-amount/:userId", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+
+
+
+
 
 
 module.exports = router;

@@ -89,116 +89,166 @@ exports.getAllUsers = async (req, res) => {
 };
 
 
+// front end email 
 
 exports.approveUser = async (req, res) => {
   try {
     const { userId } = req.body;
 
-    // Find user
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
+    if (!user) return res.status(404).json({ message: "User not found." });
+    if (user.status === "approved") return res.status(400).json({ message: "User already approved." });
 
-    // Already approved?
-    if (user.status === "approved") {
-      return res.status(400).json({ message: "User is already approved." });
-    }
-
-    // Generate login code (Client ID)
+    // Generate unique client ID
     const loginCode = generateUniqueCode();
 
-    // Email content
-    const emailHtml = `
-      <h2>Your Grow Capital Account is Approved!</h2>
-      <p>Hello ${user.fullName},</p>
-      <p>Your login credentials are:</p>
-      <p><b>Client ID:</b> ${loginCode}</p>
-      <p><b>Password:</b> ${user.passwordShow}</p>
-      <p>Please use these credentials to log in.</p>
-      <br/>
-      <p>Regards,<br/>Grow Capital Team</p>
-    `;
-
-    // Attempt to send email
-    const emailSent = await sendEmail(
-      user.email,
-      "Grow Capital Login Credentials",
-      emailHtml
-    );
-
-    if (!emailSent) {
-      // Email failed → do not approve
-      return res.status(500).json({
-        message: "Email sending failed. User not approved.",
-      });
-    }
-
-    // Email sent successfully → approve user
+    // Save in DB
     user.uniqueLoginCode = loginCode;
     user.status = "approved";
     await user.save();
 
-    return res.status(200).json({
-      message: "User approved & email sent!",
+    res.status(200).json({
+      message: "User approved successfully",
       loginDetails: {
         clientId: loginCode,
         password: user.passwordShow,
+        fullName: user.fullName,
+        email: user.email,
       },
     });
-
   } catch (error) {
-    console.error("Approve user error:", error);
-    return res.status(500).json({ message: "Server Error", error });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
-
-
-
-
-
-// Optional: Admin Reject User (similar to approve, but sets status to 'rejected')
 exports.rejectUser = async (req, res) => {
   try {
-    const { userId, reason } = req.body;
-
+    const { userId } = req.body;
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    if (user.status === "rejected") {
-      return res.status(400).json({ message: "User is already rejected." });
-    }
+    if (!user) return res.status(404).json({ message: "User not found." });
 
     user.status = "rejected";
     await user.save();
 
-    const emailSubject = "Your GrowAdmin Account Registration Status";
-    const emailHtml = `
-      <p>Dear ${user.fullName},</p>
-      <p>We regret to inform you that your GrowAdmin account registration has been rejected by our administrators.</p>
-      ${reason ? `<p>Reason: ${reason}</p>` : ''}
-      <p>Please contact support if you believe this is an error or for further assistance.</p>
-      <br>
-      <p>Thank you,</p>
-      <p>The GrowAdmin Team</p>
-    `;
-
-    const emailSent = await sendEmail(user.email, emailSubject, emailHtml);
-
-    if (emailSent) {
-      res.status(200).json({ message: `User ${user.fullName} rejected and email sent successfully!` });
-    } else {
-      res.status(200).json({ message: `User ${user.fullName} rejected, but failed to send notification email.` });
-    }
-
+    res.status(200).json({ message: "User rejected successfully" });
   } catch (error) {
-    console.error("Reject user error:", error);
-    res.status(500).json({ message: "Server Error", error });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
+
+
+
+// exports.approveUser = async (req, res) => {
+//   try {
+//     const { userId } = req.body;
+
+//     // Find user
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found." });
+//     }
+
+//     // Already approved?
+//     if (user.status === "approved") {
+//       return res.status(400).json({ message: "User is already approved." });
+//     }
+
+//     // Generate login code (Client ID)
+//     const loginCode = generateUniqueCode();
+
+//     // Email content
+//     const emailHtml = `
+//       <h2>Your Grow Capital Account is Approved!</h2>
+//       <p>Hello ${user.fullName},</p>
+//       <p>Your login credentials are:</p>
+//       <p><b>Client ID:</b> ${loginCode}</p>
+//       <p><b>Password:</b> ${user.passwordShow}</p>
+//       <p>Please use these credentials to log in.</p>
+//       <br/>
+//       <p>Regards,<br/>Grow Capital Team</p>
+//     `;
+
+//     // Attempt to send email
+//     const emailSent = await sendEmail(
+//       user.email,
+//       "Grow Capital Login Credentials",
+//       emailHtml
+//     );
+
+//     if (!emailSent) {
+//       // Email failed → do not approve
+//       return res.status(500).json({
+//         message: "Email sending failed. User not approved.",
+//       });
+//     }
+
+//     // Email sent successfully → approve user
+//     user.uniqueLoginCode = loginCode;
+//     user.status = "approved";
+//     await user.save();
+
+//     return res.status(200).json({
+//       message: "User approved & email sent!",
+//       loginDetails: {
+//         clientId: loginCode,
+//         password: user.passwordShow,
+//       },
+//     });
+
+//   } catch (error) {
+//     console.error("Approve user error:", error);
+//     return res.status(500).json({ message: "Server Error", error });
+//   }
+// };
+
+
+
+
+
+
+// // Optional: Admin Reject User (similar to approve, but sets status to 'rejected')
+// exports.rejectUser = async (req, res) => {
+//   try {
+//     const { userId, reason } = req.body;
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found." });
+//     }
+
+//     if (user.status === "rejected") {
+//       return res.status(400).json({ message: "User is already rejected." });
+//     }
+
+//     user.status = "rejected";
+//     await user.save();
+
+//     const emailSubject = "Your GrowAdmin Account Registration Status";
+//     const emailHtml = `
+//       <p>Dear ${user.fullName},</p>
+//       <p>We regret to inform you that your GrowAdmin account registration has been rejected by our administrators.</p>
+//       ${reason ? `<p>Reason: ${reason}</p>` : ''}
+//       <p>Please contact support if you believe this is an error or for further assistance.</p>
+//       <br>
+//       <p>Thank you,</p>
+//       <p>The GrowAdmin Team</p>
+//     `;
+
+//     const emailSent = await sendEmail(user.email, emailSubject, emailHtml);
+
+//     if (emailSent) {
+//       res.status(200).json({ message: `User ${user.fullName} rejected and email sent successfully!` });
+//     } else {
+//       res.status(200).json({ message: `User ${user.fullName} rejected, but failed to send notification email.` });
+//     }
+
+//   } catch (error) {
+//     console.error("Reject user error:", error);
+//     res.status(500).json({ message: "Server Error", error });
+//   }
+// };
 
 // Optional: Get all pending users for admin dashboard
 exports.getPendingUsers = async (req, res) => {
@@ -253,12 +303,6 @@ exports.updateUserStatus = async (req, res) => {
 };
 
 
-
-///// Contact Details //
-
-
-
-
 // Get contact details
 exports.getContact = async (req, res) => {
   try {
@@ -303,52 +347,3 @@ exports.updateContact = async (req, res) => {
 
 
 
-
-
-
-// exports.approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ message: "User not found." });
-//     if (user.status === "approved") return res.status(400).json({ message: "User already approved." });
-
-//     // Generate unique client ID
-//     const loginCode = generateUniqueCode();
-
-//     // Save in DB
-//     user.uniqueLoginCode = loginCode;
-//     user.status = "approved";
-//     await user.save();
-
-//     res.status(200).json({
-//       message: "User approved successfully",
-//       loginDetails: {
-//         clientId: loginCode,
-//         password: user.passwordShow,
-//         fullName: user.fullName,
-//         email: user.email,
-//       },
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };
-
-// exports.rejectUser = async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ message: "User not found." });
-
-//     user.status = "rejected";
-//     await user.save();
-
-//     res.status(200).json({ message: "User rejected successfully" });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };

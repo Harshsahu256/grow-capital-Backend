@@ -121,7 +121,7 @@ exports.getUserTransactionHistory = async (req, res) => {
         pendingWithdraw,
         totalRequests: withdrawRequests.length
       },
-      transactions: withdrawRequests // includes date, amount, status, etc.
+      transactions: withdrawRequests 
     });
   } catch (error) {
     console.error(error);

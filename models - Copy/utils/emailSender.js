@@ -122,3 +122,97 @@ const sendEmail = async (to, subject, htmlContent) => {
 module.exports = sendEmail;
 
 
+
+// // utils/sendEmail.js
+// const nodemailer = require("nodemailer");
+// require("dotenv").config();
+ 
+// /**
+// * sendEmail - Function to send emails via SMTP
+// */
+// // const sendEmail = async (to, subject, htmlContent) => {
+// //   try {
+// //     const transporter = nodemailer.createTransport({
+// //       host: process.env.EMAIL_HOST,       // mail.smigc.in
+// //       port: parseInt(process.env.EMAIL_PORT), // 465
+// //       secure: process.env.EMAIL_SECURE === "true",
+// //       auth: {
+// //         user: process.env.EMAIL_USER,     // info@smigc.in
+// //         pass: process.env.EMAIL_PASS,     // email password
+// //       },
+// //       tls: {
+// //         rejectUnauthorized: false,
+// //       },
+// //     });
+ 
+// //     const mailOptions = {
+// //       from: `"GrowAdmin" <${process.env.EMAIL_USER}>`,
+// //       to,
+// //       subject,
+// //       html: htmlContent,
+// //     };
+ 
+// //     const info = await transporter.sendMail(mailOptions);
+ 
+// //     console.log("Email Sent:", info.messageId);
+// //     return true;
+// //   } catch (error) {
+// //     console.error("Email Error:", error);
+// //     return false;
+// //   }
+// // };
+
+
+// const sendEmail = require("../utils/sendEmail");
+// const User = require("../models/User");
+// const generateUniqueCode = require("../../models/utils/generateUniqueCode");
+ 
+// exports.approveUser = async (req, res) => {
+//   try {
+//     const { userId } = req.body;
+ 
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ message: "User not found." });
+ 
+//     if (user.status === "approved") {
+//       return res.status(400).json({ message: "User already approved." });
+//     }
+ 
+//     const uniqueCode = generateUniqueCode();
+//     user.uniqueLoginCode = uniqueCode;
+//     user.status = "approved";
+ 
+//     await user.save();
+ 
+//     const emailHtml = `
+// <h2>Your Account Has Been Approved!</h2>
+// <p>Dear ${user.fullName},</p>
+// <p>Your login credentials:</p>
+// <p><b>Login Code:</b> ${uniqueCode}</p>
+// <p><b>Password:</b> ${user.passwordShow}</p>
+// <p>Use these credentials to login.</p>
+// <p>Regards,<br/>Grow Capital Team</p>
+//     `;
+ 
+//     const emailSent = await sendEmail(
+//       user.email,
+//       "Your Grow Capital Login Details",
+//       emailHtml
+//     );
+ 
+//     if (emailSent) {
+//       res.status(200).json({
+//         message: `User ${user.fullName} approved and email sent!`,
+//       });
+//     } else {
+//       res.status(200).json({
+//         message: `User ${user.fullName} approved, but email sending failed.`,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Approve user error:", error);
+//     res.status(500).json({ message: "Server Error", error });
+//   }
+// };
+ 
+// module.exports = sendEmail;
