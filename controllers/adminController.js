@@ -322,6 +322,9 @@ exports.getContact = async (req, res) => {
   }
 };
 
+
+
+//==========================================///////
 // Update contact details
 exports.updateContact = async (req, res) => {
   try {
@@ -345,5 +348,59 @@ exports.updateContact = async (req, res) => {
 };
 
 
+exports.updateUserDetails = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Allowed fields to update
+    const allowedUpdates = [
+      "fullName",
+      "dob",
+      "mobileNumber",
+      "email",
+      "panCardNumber",
+      "ifscCode",
+      "bankName",
+      "bankBranchName",
+      "accountNumber",
+      "aadharNumber",
+      "nomineeName",
+      "nomineeRelation",
+      "nomineeAadhar"
+    ];
+
+    // Filter only allowed fields from req.body
+    const updates = {};
+    Object.keys(req.body).forEach((key) => {
+      if (allowedUpdates.includes(key)) {
+        updates[key] = req.body[key];
+      }
+    });
+
+    // If no valid field
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update!" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+
+    res.json({
+      message: "User personal details updated successfully!",
+      updatedUser,
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Server Error", error });
+  }
+};
 
 

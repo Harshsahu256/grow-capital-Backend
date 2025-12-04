@@ -128,3 +128,36 @@ exports.getUserTransactionHistory = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+// ✅ Admin: Reject a withdrawal request
+exports.rejectWithdrawRequest = async (req, res) => {
+  try {
+    const { id } = req.params; // Request ID
+
+    // Step 1: Request find karo
+    const request = await WithdrawRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Withdraw request not found" });
+    }
+
+    // Step 2: Agar already approved hai toh reject nahi ho sakta
+    if (request.status === "approved") {
+      return res.status(400).json({ message: "Approved request cannot be rejected" });
+    }
+
+    // Step 3: Status = rejected set karo
+    request.status = "rejected";
+    await request.save();
+
+    res.status(200).json({
+      message: "Withdraw request rejected successfully",
+      request,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+ 

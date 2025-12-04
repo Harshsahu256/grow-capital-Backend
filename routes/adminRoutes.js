@@ -9,7 +9,8 @@ const {
   getPendingUsers,
   updateUserStatus,
   getContact,
-  updateContact
+  updateContact,
+  updateUserDetails
 } = require("../controllers/adminController");
 
 
@@ -32,7 +33,7 @@ const {
    getAllFilesForAdmin,   // <-- add this
    approveFile
 } = require("../controllers/fileController"); // file upload logic
-const { getAllWithdrawRequests, updateWithdrawRequestStatus } = require("../controllers/withdrawController");
+const { getAllWithdrawRequests, updateWithdrawRequestStatus, rejectWithdrawRequest } = require("../controllers/withdrawController");
 const { getAllMessages } = require("../controllers/contactController");
 
 const router = express.Router();
@@ -187,6 +188,9 @@ router.delete("/deletePosition/:id", async (req, res) => {
 // ✅ Admin: get all requests
 router.get("/getAllWithdrawRequests", verifyAdmin, getAllWithdrawRequests);
 
+router.put("/withdraw/reject/:id", verifyAdmin, rejectWithdrawRequest);
+
+
 // ✅ Admin: update status (approve/reject)
 router.patch("/update/:id", verifyAdmin, updateWithdrawRequestStatus);
 router.get("/messages", verifyAdmin, getAllMessages);
@@ -275,9 +279,8 @@ router.put("/update-amount/:userId", async (req, res) => {
 });
 
 
-
-
-
+// Update user personal details
+router.put("/update/:id", updateUserDetails);
 
 
 module.exports = router;
